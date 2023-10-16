@@ -1,0 +1,121 @@
+---
+title: "Ćwiczenia 2"
+output: html_document
+date: "2023-10-16"
+---
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE}
+library(PogromcyDanych)
+library(tidyverse)
+```
+
+### Zadanie 1
+
+```{r}
+cats_birds |>
+  ggplot(aes(y = length, x = speed)) +
+  geom_point(aes(shape = group, color = group), size = 2.5) +
+  geom_smooth(aes(group = group), method = "lm")
+```
+
+Zależność jest nieliniowa, lepszy model uzyskujemy dla $\ln{y} \sim \ln{x}$
+
+```{r}
+cats_birds |>
+  ggplot(aes(y = log(length), x = log(speed))) +
+  geom_point(aes(shape = group, color = group), size = 2.5) +
+  geom_smooth(aes(group = group), method = "lm")
+```
+
+### Zadanie 2
+
+```{r}
+pearson |>
+  ggplot(aes(y = son, x = father)) +
+  geom_point() +
+  geom_smooth(method = "lm", se = FALSE, linewidth = 1.4)
+```
+
+### Zadanie 3
+
+```{r}
+set.seed(100)
+sampleSeries <- sample(unique(seriesIMDB$series), 20, replace = FALSE)
+
+seriesIMDB |> 
+  filter(series %in% sampleSeries)|>
+  mutate(series = reorder(series, note, median)) |>
+  ggplot(aes(y = series, x = note)) +
+  geom_boxplot() +
+  theme(axis.text.y = element_text(size = 8, angle = 20))
+```
+
+### Zadanie 4
+
+```{r}
+diagnosis |>
+  mutate(gp29 = substr(gp29, start = 1, stop = 16)) |>
+  ggplot(aes(y = eduk4_2013, fill = gp29)) +
+  geom_bar() +
+  theme(legend.position = 'top')
+```
+
+### Zadanie 5
+
+```{r}
+auta2012 |>
+  filter(Brand == "Volkswagen",
+         grepl(Model, pattern = "Passat")) |>
+  ggplot(aes(y = Price.in.PLN, x = Year)) +
+  geom_smooth(se = FALSE, method = "loess")
+```
+
+```{r}
+auta2012 |>
+  filter(Brand == "Volkswagen",
+         grepl(Model, pattern = "Passat")) |>
+  ggplot(aes(y = Price.in.PLN, x = Year)) +
+  geom_smooth(se = FALSE)
+```
+
+### Zadanie 6
+
+```{r}
+cats_birds|>
+  ggplot(aes(x = weight, 
+             y = speed, 
+             size  = lifespan, 
+             color = lifespan)) + 
+  geom_point(shape = 15L) +
+  scale_color_gradient(low = 'green', 
+                       high = 'red') +
+  ggtitle("Speed of cats and birds against their weight") +
+  xlab("Weight of the animal") +
+  xlab("Peak speed that this animal can achive")
+```
+
+### Zadanie 7
+
+```{r}
+auta2012 |>
+  filter(Brand == "Toyota") |>
+  count(Model, name = "count") |>
+  arrange(-count) |>
+  head() |>
+  ggplot(aes(y = count, x = "", fill = Model)) +
+  geom_bar(width = 1, stat = "identity") +
+  coord_polar("y", start = 0) +
+  theme_void()
+```
+
+### Zadanie 8
+
+```{r}
+pearson |>
+  pivot_longer(cols = everything(),
+               names_to = "father_son",
+               values_to = "values") |>
+  ggplot(aes(x = values, group = father_son)) +
+  geom_histogram(col = "white", position = "identity")
+```
+
