@@ -1,0 +1,192 @@
+---
+title: "Ćwiczenia 1"
+output: html_document
+date: "2023-10-09"
+---
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE}
+library(PogromcyDanych)
+library(tidyverse)
+```
+
+#### Zadanie 1
+
+```{r}
+df <- PogromcyDanych::auta2012
+df |>
+  sapply(FUN = is.factor) |>
+  sum()
+```
+
+#### Zadanie 2
+
+```{r}
+df |>
+  select(Marka) |>
+  table() |>
+  which.max() |>
+  names()
+```
+
+```{r}
+df |>
+  count(Marka) |>
+  top_n(1, n)
+```
+
+#### Zadanie 3
+
+```{r}
+100 * (df$Rodzaj.paliwa |>
+  table() |>
+  prop.table())
+```
+
+```{r}
+df |>
+  count(Rodzaj.paliwa) |>
+  mutate(percent = 100 * n / nrow(df)) |>
+  mutate(percent = round(percent, 2)) |>
+  select(percent)
+```
+
+#### Zadanie 4
+
+```{r}
+df |>
+  filter(Cena.w.PLN < 2000) |>
+  nrow()
+```
+
+#### Zadanie 5
+
+```{r}
+df |>
+  summarise("lll" = mean(Pojemnosc.skokowa >= 1500, na.rm = TRUE))
+```
+
+#### Zadanie 6
+
+```{r}
+df |>
+  filter(Kraj.aktualnej.rejestracji == "Polska", Cena.w.PLN < 2000) |>
+  nrow()
+```
+
+#### Zadanie 7
+
+```{r}
+(df |>
+  filter(Pojemnosc.skokowa > 1500, 
+         Rodzaj.paliwa == "olej napedowy (diesel)") |>
+  nrow()) / nrow(df)
+```
+
+#### Zadanie 8
+
+```{r}
+df <- MASS::Cars93 |>
+  filter(Type == "Small" | Type == "Sporty")
+
+head(df)
+```
+
+```{r}
+df |>
+  select(Type) |>
+  table()
+```
+
+#### Zadanie 9
+
+```{r}
+koty_ptaki |>
+  filter(dlugosc > 1)
+```
+
+#### Zadanie 10
+
+```{r}
+koty_ptaki |>
+  arrange(predkosc)
+```
+
+#### Zadanie 11
+
+```{r}
+df <- PogromcyDanych::auta2012
+
+df |>
+  filter(Marka == "Volkswagen") |> 
+  select(Rodzaj.paliwa) |>
+  table()
+```
+
+#### Zadanie 12
+
+```{r}
+df |>
+  filter(Marka == "Volkswagen") |> 
+  summarise("Średnia cena" = mean(Cena.w.PLN),
+            "Średni przebieg" = mean(Przebieg.w.km, na.rm = TRUE))
+```
+
+#### Zadanie 13
+
+```{r}
+df |>
+  group_by(Marka) |>
+  summarise("Średnia cena" = mean(Cena.w.PLN))
+```
+
+#### Zadanie 14
+
+```{r}
+df |>
+  filter(Marka == "Toyota", 
+         str_sub(Model, start = 1, end = 7) == "Corolla") |>
+  summarise("1qr" = quantile(Cena.w.PLN, .25),
+            "3qr" = quantile(Cena.w.PLN, .75))
+```
+
+#### Zadanie 15
+
+```{r}
+df |>
+  filter(Marka == "Toyota") |> 
+  group_by(Model) |>
+  summarise("PrMean" = mean(Cena.w.PLN)) |>
+  arrange(desc(PrMean))
+```
+
+#### Zadanie 16
+
+```{r}
+df |>
+  filter(Marka == "Volkswagen",
+         Model == "Passat",
+         Rok.produkcji == 2006) |>
+  summarise("Wynik" = sum(Cena.w.PLN < 35000))
+```
+
+#### Zadanie 17
+
+```{r}
+df |>
+  filter(Rok.produkcji == 2007) |>
+  group_by(Marka) |>
+  summarise(n = n()) |>
+  arrange(n)
+```
+
+#### Zadanie 18
+
+```{r}
+(df <- left_join(
+  fueleconomy::common,
+  fueleconomy::vehicles,
+  by = join_by(make == make,
+               model == model)
+) |> as_tibble())
+```
+
