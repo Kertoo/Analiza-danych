@@ -1,0 +1,129 @@
+---
+title: "Ćwiczenia 3"
+output: html_document
+date: "2023-10-23"
+---
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE}
+library(PogromcyDanych)
+library(tidyverse)
+library(outliers)
+```
+
+### Zadanie 1
+
+```{r}
+df <- data.frame(sample1 = rnorm(100), 
+                 sample2 = rnorm(100))
+
+df |>
+  pivot_longer(cols = c("sample1", "sample2")) |>
+  ggplot(aes(x = value)) +
+  facet_wrap(~ name) +
+  geom_histogram(aes(y = after_stat(density))) +
+  geom_density()
+```
+
+### Zadanie 2
+
+```{r}
+mean(abs(rnorm(100, 100, 10) - 100) < 2 * 10)
+```
+
+### Zadanie 3
+
+Wykres normalności
+
+```{r}
+x <- rnorm(200)
+
+qqnorm(x)
+qqline(x)
+```
+
+```{r}
+data.frame(
+  row.names = paste0(1:3, c(" - sigma")),
+  oczekiwane = c(.68, .95, .998),
+  zaobserwowane = sapply(1:3, function(t) mean(abs(x) < t))
+)
+```
+
+### Zadanie 4
+
+```{r}
+fn <- function(throws = 1L) {
+  data.frame(x = apply(as.matrix(1:3), 
+        function (t) sample(1:6, size = throws, replace = TRUE), 
+        MARGIN = 1) |> 
+    as.matrix() |> 
+    rowSums() |> as.factor()) |>
+    ggplot(aes(x = x)) +
+    geom_bar() + 
+    ylab("Ilość otrzymanych sum") + 
+    xlab("Suma") +
+    ggtitle(paste0("Wyniki eksperymentu z ", throws, ifelse(throws == 1L, "-nym", 
+                                                            "-ma"), 
+                   " powtórzeniami"))
+}
+fn(20000)
+```
+
+
+### Zadania 5
+
+Wartości teorytyczne $\mathbb{E}X=.99$ oraz $\text{var}(X) = .99\cdot.01=0.0099$
+```{r}
+fn <- function(n = 500L) {
+  xx <- mean(rbinom(n = n, size = 1, prob = .99))
+  data.frame("Średnia" = c(xx, .99), 
+             "Wariancja" = c(xx * (1 - xx), .0099),
+             row.names = c("Zaobserwowane", "Teorytyczne"))
+}
+```
+
+
+### Zadanie 6
+
+Prawdopodobieństwo na podstawie:
+$\mathbb{P}\left(|X-\mu|\geq.8\right)=\mathbb{P}\left(\frac{|X-\mu|}{\sigma}\geq\frac{.8}{\sigma}\right)=\mathbb{P}(|\mathcal{N}_{0,1}|\geq\frac{.8}{\sigma})=1-\Phi\left(\frac{.8}{\sigma}\right) + \Phi\left(-\frac{.8}{\sigma}\right)=2\Phi\left(-\frac{.8}{\sigma}\right)$
+```{r}
+2*pnorm(-.8 / .4)
+```
+
+Oczekujemy:
+```{r}
+50*2*pnorm(-.8 / .4)
+```
+
+Odrzucanie:
+
+```{r}
+50 * 2 * (1 - pnorm(abs(c("3" = 3, "6" = 6) - 4.8) / .4)) < .5
+```
+
+### Zadanie 7
+
+Według testu grubbsa $34$ jest outlierem a według testu dixona nie ma podstaw do odrzucenia hipotezy zerowej o tym, że $34$ nie jest outlierem
+```{r}
+wyniki <- c(12, 34, 22, 14, 22, 17, 24, 22, 18, 14, 18, 12)
+
+print(dixon.test(wyniki))
+print(grubbs.test(wyniki))
+```
+
+
+Kyterium Chauveneta też sugeruje odrzucenie:
+```{r}
+print(length(wyniki) * 2 * (1 - pnorm(abs(max(wyniki) - mean(wyniki)) / sd(wyniki))))
+length(wyniki) * 2 * (1 - pnorm(abs(max(wyniki) - mean(wyniki)) / sd(wyniki))) < .5
+```
+
+### Zadanie 8
+
+```{r}
+
+```
+
+### Zadanie 9
+

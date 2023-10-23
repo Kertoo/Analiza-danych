@@ -114,8 +114,26 @@ auta2012 |>
 pearson |>
   pivot_longer(cols = everything(),
                names_to = "father_son",
-               values_to = "values") |>
+               values_to = "values") -> dd
+dd |>
   ggplot(aes(x = values, group = father_son)) +
-  geom_histogram(col = "white", position = "identity")
+  geom_histogram(data = subset(dd, father_son == "son"), col = "white", aes(y = ..density..), alpha = .4) +
+  geom_density(data = subset(dd, father_son == "son"), fill = "red", alpha = .2) +
+  geom_histogram(data = subset(dd, father_son == "father"), col = "white", aes(y = ..density..), alpha = .4) +
+  geom_density(data = subset(dd, father_son == "father"), fill = "green", alpha = .2)
 ```
 
+```{r}
+dd |>
+  ggplot(aes(x = values, group = father_son)) + 
+  facet_wrap(~ father_son) +
+  geom_histogram(col = "white", aes(y = ..density..), alpha = .4) +
+  geom_density(fill = "red", alpha = .2)
+```
+
+```{r}
+pearson |>
+    ggplot(aes(x = son, y = father)) + 
+    geom_point(size = 1.5) +
+    geom_density2d(size = 2, alpha = .2)
+```
