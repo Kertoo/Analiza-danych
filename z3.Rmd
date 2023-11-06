@@ -1,6 +1,8 @@
 ---
 title: "Ćwiczenia 3"
-output: html_document
+output:
+  pdf_document: default
+  html_document: default
 date: "2023-10-23"
 ---
 
@@ -8,6 +10,9 @@ date: "2023-10-23"
 library(PogromcyDanych)
 library(tidyverse)
 library(outliers)
+library(isotree)
+library(dbscan)
+library(mice)
 ```
 
 ### Zadanie 1
@@ -80,6 +85,7 @@ fn <- function(n = 500L) {
              "Wariancja" = c(xx * (1 - xx), .0099),
              row.names = c("Zaobserwowane", "Teorytyczne"))
 }
+fn()
 ```
 
 
@@ -91,6 +97,13 @@ $\mathbb{P}\left(|X-\mu|\geq.8\right)=\mathbb{P}\left(\frac{|X-\mu|}{\sigma}\geq
 2*pnorm(-.8 / .4)
 ```
 
+symulacja:
+```{r}
+xx <- abs(rnorm(mean = 4.8, n = 100000, sd = .4) - 4.8) > .8
+
+prop.test(sum(xx), n = 100000, p = 2*pnorm(-.8 / .4))
+```
+
 Oczekujemy:
 ```{r}
 50*2*pnorm(-.8 / .4)
@@ -99,7 +112,7 @@ Oczekujemy:
 Odrzucanie:
 
 ```{r}
-50 * 2 * (1 - pnorm(abs(c("3" = 3, "6" = 6) - 4.8) / .4)) < .5
+50 * 2 * (1 - pnorm(abs(c("4" = 4, "6" = 6) - 4.8) / .4)) < .5
 ```
 
 ### Zadanie 7
@@ -122,8 +135,55 @@ length(wyniki) * 2 * (1 - pnorm(abs(max(wyniki) - mean(wyniki)) / sd(wyniki))) <
 ### Zadanie 8
 
 ```{r}
+forest <- predict(isolation.forest(trees, ntrees = 1000), trees)
+sort(forest, decreasing = TRUE)[1:5]
+```
 
+```{r}
+xx <- lof(trees)
+names(xx) <- 1:31
+sort(xx, decreasing = TRUE)
+```
+
+```{r}
+tibble(forest = forest, lof = xx) |>
+  ggplot(aes(x = lof, y = forest)) +
+  geom_point(aes(size = lof * forest)) +
+  geom_text(vjust = 1.2, hjust = 2, aes(label = 31),
+            data = tibble(forest = forest, lof = xx) |> 
+              top_n(1))
 ```
 
 ### Zadanie 9
 
+```{r}
+df <- trees
+df[df$Height == 80, "Height"] <- NA
+tail(df)
+```
+
+`lm` wypada słabo bo jest mało danych
+
+```{r}
+model <- lm(Height ~ ., data = df |>
+  filter(!is.na(Height)))
+
+df1 <- cbind(
+  "imputacja" = predict(model, df |> filter(is.na(Height))),
+  df |> filter(is.na(Height))
+)
+```
+
+
+
+```{r}
+model <- mice(df)
+
+df2 <- complete(model) |>
+  subset(is.na(df$Height))
+```
+
+```{r}
+c("mice" = mean((df2$Height - 80) ^ 2),
+  "lm"   = mean((df1[,1] - 80) ^ 2))
+```

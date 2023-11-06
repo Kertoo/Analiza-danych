@@ -1,0 +1,85 @@
+---
+title: "Ćwiczenia 3"
+output:
+  pdf_document: default
+  html_document: default
+date: "2023-11-06"
+---
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE}
+library(PogromcyDanych)
+library(tidyverse)
+```
+
+
+### Zadanie 1
+
+```{r}
+cars |>
+  ggplot(aes(x = speed, y = dist)) +
+  geom_point() +
+  geom_text(aes(label = 1:NROW(cars)), vjust = 1.2, hjust = 1.2) +
+  geom_smooth(method = "lm", se = FALSE) +
+  geom_smooth(method = "lm", se = FALSE, formula = y ~ poly(x, 2), color = "red")
+```
+
+### Zadanie 2
+```{r}
+df <- MASS::hills
+model <- lm(cbind(dist, climb) ~ time, data = df)
+summary(model)
+```
+
+```{r}
+p1 <- df |>
+  ggplot(aes(x = time)) +
+  geom_point(aes(y = dist)) +
+  geom_smooth(aes(y = dist), method = "lm")
+
+p2 <- df |>
+  ggplot(aes(x = time)) +
+  geom_point(aes(y = climb)) +
+  geom_smooth(aes(y = climb), method = "lm")
+
+gridExtra::grid.arrange(p1, p2)
+```
+
+### Zadanie 3
+```{r}
+df <- UsingR::homedata |> tibble()
+
+model <- lm(y2000 ~ y1970, data = df)
+summary(model)
+```
+
+```{r}
+predict(model, data.frame(y1970 = 75000), interval = "prediction")
+```
+
+### Zad 4
+```{r}
+(df <- tibble(
+  cena   = c(300, 250, 400, 550, 317, 389, 425, 289, 389, 559),
+  pokoje = c(3, 3, 4, 5, 4, 3, 6, 3, 4, 5)
+))
+cat("------")
+model <- lm(cena ~ pokoje, data = df)
+summary(model)
+```
+
+```{r}
+predict(model, data.frame(pokoje = 2), interval = "prediction") |> print()
+df |>
+  ggplot(aes(y = cena, x = pokoje)) +
+  geom_point() +
+  geom_smooth(method = "lm")
+```
+
+### Zadanie 5
+
+```{r}
+df <- UsingR::florida
+df |>
+  ggplot(aes(y = BUSH, x = BUCHANAN)) +
+  geom_point()
+```
