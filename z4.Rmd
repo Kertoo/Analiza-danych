@@ -1,9 +1,9 @@
 ---
-title: "Ćwiczenia 3"
+title: "Ćwiczenia 4"
 output:
   pdf_document: default
   html_document: default
-date: "2023-11-06"
+date: "2023-11-20"
 ---
 
 ```{r, echo=FALSE, warning=FALSE, message=FALSE}
@@ -31,17 +31,14 @@ summary(model)
 ```
 
 ```{r}
-p1 <- df |>
-  ggplot(aes(x = time)) +
-  geom_point(aes(y = dist)) +
-  geom_smooth(aes(y = dist), method = "lm")
-
-p2 <- df |>
-  ggplot(aes(x = time)) +
-  geom_point(aes(y = climb)) +
-  geom_smooth(aes(y = climb), method = "lm")
-
-gridExtra::grid.arrange(p1, p2)
+df |>
+  as_tibble(rownames = "Race") |>
+  pivot_longer(cols = c("dist", "climb"),
+               names_to = "variable", values_to = "value") |>
+  ggplot(aes(x = time, y = value)) +
+  geom_point() +
+  facet_wrap(~ variable, scales = "free") +
+  geom_smooth(method = "lm", se = FALSE)
 ```
 
 ### Zadanie 3
@@ -54,6 +51,20 @@ summary(model)
 
 ```{r}
 predict(model, data.frame(y1970 = 75000), interval = "prediction")
+```
+
+```{r}
+df |>
+    ggplot(aes(y = y2000, x = y1970)) +
+    geom_point(shape = ".") +
+    geom_point(data = data.frame(y1970 = 75000, 
+                                 y2000 = predict(model, 
+                                                 data.frame(y1970 = 75000))),
+               aes(size = 1.4, col = "red"), show.legend = FALSE) +
+    geom_smooth(se = FALSE, col = "lightblue", method = "lm",
+                show.legend = FALSE) +
+    geom_smooth(se = FALSE, col = "green", formula = y ~ x - 1, method = "lm",
+                show.legend = FALSE)
 ```
 
 ### Zad 4
@@ -79,7 +90,63 @@ df |>
 
 ```{r}
 df <- UsingR::florida
-df |>
+df |> 
+  transform(tt = ifelse(BUSH > 10^5 | BUCHANAN > 1000, 
+                        rownames(df), "")) |>
   ggplot(aes(y = BUSH, x = BUCHANAN)) +
-  geom_point()
+  geom_point() +
+  ggrepel::geom_text_repel(aes(label = tt))
+```
+
+```{r}
+m1 <- lm(BUCHANAN ~ BUSH, data = df[-c(13, 50),])
+print(summary(m1))
+cat("----------\n")
+print(predict(m1, df[df$County == "DADE", , drop = FALSE]))
+```
+
+### Zadanie 6
+
+```{r}
+df <- UsingR::emissions
+
+df |> 
+  transform(tt = ifelse(CO2 > 1000 | GDP > 10 ^ 6, rownames(df), "")) |>
+  ggplot(aes(y = CO2, x = GDP)) +
+  geom_point() +
+  ggrepel::geom_text_repel(aes(label = tt))
+```
+
+```{r}
+m_z_us   <- lm(CO2 ~ GDP, data = df)
+m_bez_us <- lm(CO2 ~ GDP, data = df[-(which.max(df$GDP)), , drop = FALSE])
+print(summary(m_z_us))
+print(summary(m_bez_us))
+
+df |> 
+  transform(tt = ifelse(CO2 > 1000 | GDP > 10 ^ 6, rownames(df), "")) |>
+  ggplot(aes(y = CO2, x = GDP)) +
+  geom_point() +
+  geom_smooth(method = "lm", aes(col = "red"), se = FALSE,
+              fullrange = TRUE) +
+  geom_smooth(data = df[-(which.max(df$GDP)), , drop = FALSE],
+              method = "lm", aes(col = "navy"), 
+              se = FALSE,
+              fullrange = TRUE) +
+  ggrepel::geom_text_repel(aes(label = tt)) +
+  scale_color_discrete(label = c("Model z  usa", "Model bez usa"))
+```
+
+### Zadanie 7
+
+Usuwanie wyrazu wolnego nie ma sensu (bo dom bez toalet nie zostałby oddan za darmo)
+
+```{r}
+df <- UsingR::homeprice
+
+mm_bad <- lm(sale ~ half - 1, data = df)
+print(summary(mm_bad))
+
+mm <- lm(sale ~ half, data = df)
+summary(mm)
 ```

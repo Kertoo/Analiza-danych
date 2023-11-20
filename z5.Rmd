@@ -1,0 +1,57 @@
+---
+title: "Ćwiczenia 5"
+output:
+  html_document: default
+  pdf_document: default
+date: "2023-11-20"
+---
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE}
+library(tidyverse)
+```
+
+### Zadanie 1
+
+```{r}
+df <- DAAG::litters
+mm <- lm(brainwt ~ lsize + bodywt, data = df)
+summary(mm)
+```
+
+Bardzo mocno skorelowane zmienne objaśniające $R^2>90\%$ dla modelu wyjaśniającego
+wielkość miotu od masy ciała
+
+```{r}
+car::vif(mm)
+```
+
+### Zadanie 2
+
+```{r}
+df <- carData::USPop
+
+fn <- function(par = c(1, 1, 1)) {
+    a <- par[1]
+    b <- par[2]
+    c <- par[3]
+    
+    mean((df$year - a / (1 + exp((b - df$year)/ c))) ^ 2)
+}
+
+op <- optim(fn = fn, par = c(0, 2000, .002), 
+            hessian = TRUE,
+            method = "Nelder-Mead",
+            control = list(maxit = 50000, 
+                           abstol = .Machine$double.eps, trace = TRUE))
+lln <- function(x) {
+  op$par[1] / (1 + exp((op$par[2]-x)/op$par[3]))
+}
+
+df |>
+  ggplot(aes(y = population, x = year)) +
+  geom_point() +
+  geom_line(data = data.frame(x = seq(from = 1790, to = 2000, by = 1),
+                              y = lln(seq(from = 1790, to = 2000, by = 1))),
+                 inherit.aes = FALSE,
+                 aes(y = y, x = x))
+```
