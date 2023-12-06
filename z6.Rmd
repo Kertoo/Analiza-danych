@@ -1,0 +1,151 @@
+---
+title: "Ćwiczenia 6"
+output:
+  html_document: default
+  pdf_document: default
+date: "2023-12-06"
+---
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE}
+library(tidyverse)
+library(survival)
+library(survminer)
+```
+
+
+### Zadanie 1
+
+```{r}
+df <- data.frame(
+  Time  = c(143, 165, 188, 188, 190, 192, 206, 208, 212, 216, 220, 227, 230, 235, 246, 265, 303, 216, 244,
+            142, 157, 163, 198, 205, 232, 232, 232, 233, 233, 233, 233, 239, 240, 261, 
+            280, 280, 295, 295, 323, 204, 344),
+  group = rep(1:2, c(19, 22)) |> factor(),
+  cens  = c(rep(1:0, c(17, 2)),
+            rep(1:0, c(20, 2)))
+)
+
+df <- df |>
+  mutate(Time_c = Surv(Time, cens))
+```
+
+```{r}
+model_surv <- survfit(Time_c ~ group, data = df)
+summary(model_surv)
+```
+
+```{r}
+print(model_surv, rmean = "common")
+```
+
+```{r}
+ggsurvplot(model_surv, 
+           data = df,
+           risk.table = TRUE,       
+           pval = TRUE, 
+           conf.int = TRUE,
+           fun = 'pct')
+```
+
+### Zadanie 2
+
+```{r}
+(df <- cancer |> 
+  select(time, status, sex, meal.cal)|>
+  mutate(status = status - 1) |>
+  mutate(time_c = Surv(time, status)) |>
+  select(-status, - time) |>
+  tibble())
+```
+
+
+```{r}
+model_surv <- survfit(time_c ~ sex, data = df)
+ggsurvplot(model_surv, 
+           data = df,
+           risk.table = TRUE,       
+           pval = TRUE, 
+           conf.int = TRUE,
+           fun = 'pct')
+```
+
+```{r}
+print(model_surv, rmean = "common")
+```
+
+```{r}
+model_surv <- coxph(time_c ~ as.factor(sex) + meal.cal, data = df)
+summary(model_surv)
+```
+
+```{r}
+cox.zph(model_surv)
+ggcoxzph(cox.zph(model_surv))
+```
+
+```{r}
+model_surv <- coxph(time_c ~ as.factor(sex) + I(meal.cal < 413) + I(meal.cal > 1225), data = df)
+print(summary(model_surv))
+print(cox.zph(model_surv))
+ggcoxzph(cox.zph(model_surv))
+```
+
+```{r}
+model_surv1 <- coxph(time_c ~ as.factor(sex) + I(meal.cal < 413), data = df)
+model_surv <- coxph(time_c ~ as.factor(sex), data = df |> na.omit())
+anova(model_surv, model_surv1)
+```
+
+
+### Zadanie 3
+
+Dane: 
+
+```{r}
+ovarian %>%
+  mutate(rx = factor(
+    rx,
+    levels = c(1, 2),
+    labels = c("A", "B")),
+    resid.ds = factor(
+      resid.ds,
+      levels = c(1, 2),
+      labels = c("no", "yes")),
+    ecog.ps = factor(
+      ecog.ps,
+      levels = c(1, 2),
+      labels = c("good", "bad")),
+    age = factor(ifelse(age >= 50, "old", "young")),
+    futime = Surv(futime, fustat)) -> df
+```
+
+
+#### a, b, c)
+
+```{r}
+model_surv <- survfit(futime ~ rx, data = df)
+print(model_surv, rmean = "common")
+ggsurvplot(model_surv, 
+           data = df,
+           risk.table = TRUE,       
+           pval = TRUE,
+           fun = 'pct')
+```
+
+#### d, e)
+```{r}
+model_surv <- coxph(futime ~ . - fustat, data = df)
+print(cox.zph(model_surv))
+ggcoxzph(cox.zph(model_surv))
+summary(model_surv)
+```
+
+#### f)
+
+```{r}
+model_surv_reduced <- step(model_surv)
+```
+
+```{r}
+anova(model_surv, model_surv_reduced)
+```

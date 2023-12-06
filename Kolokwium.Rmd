@@ -1,0 +1,207 @@
+---
+title: "Kolokwium"
+author: "Piotr Chlebicki"
+date: "2023-12-04"
+output:
+  pdf_document: default
+  html_document:
+    df_print: paged
+---
+
+Pakiety:
+
+```{r, warning=FALSE, message=FALSE}
+library(lmtest)
+library(tidyverse) # dplyr + ggplot
+```
+
+## Zadanie 1
+
+#### a)
+
+```{r}
+head(iris)
+```
+
+```{r}
+iris %>%
+  select(Sepal.Length, Sepal.Width) %>%
+  # Wyświetlam tylko początek, żeby było łatwiej czytać
+  head()
+```
+
+#### b)
+
+````{r}
+iris %>%
+  select(starts_with("S")) %>%
+  head()
+```
+
+#### c)
+
+```{r}
+iris %>%
+  filter(Sepal.Length >= 3.5,
+         Petal.Width  >= .8) %>%
+  head()
+```
+
+#### d)
+
+```{r}
+iris %>%
+  select(Sepal.Length, Sepal.Width, Species) %>%
+  arrange(Sepal.Length, Sepal.Width) %>%
+  head()
+```
+
+#### e)
+
+```{r}
+iris %>%
+  mutate(proportion = Petal.Length / Petal.Width) %>%
+  head()
+```
+
+#### f)
+
+Wszystkie cechy poza `Species` są numeryczne (gdyby tak nie było można dać inny warunek logiczny).
+
+Dla każdej zmiennej pierwsza kolumna to średnia druga to mediana trzecia to odchylebnie standardowe.
+
+```{r}
+iris %>%
+  group_by(Species) %>%
+  summarise_if(is.numeric, ~ cbind(mean(.x), median(.x), sd(.x)))
+```
+
+## Zadanie 2
+
+
+```{r}
+set.seed(1234567890)
+fn <- function(n = 1000) {
+  Y <- replicate(
+    n    = n,
+    expr = {
+      # gdy rpois(n = 1, lambda = 10) - rpois(n = 1, lambda = 2) < 0
+      # czyli liczebnośc X-sów
+      # zwracane jest zero
+      sum(sample(
+        x       = c(100, 1000, 10000), 
+        size    = max(0, rpois(n = 1, lambda = 10) - rpois(n = 1, lambda = 2)), 
+        prob    = c(.2, .75, .05), 
+        replace = TRUE
+      ) ^ 2)
+    }
+  )
+  
+  c("mean" = mean(Y), "sd" = sd(Y))
+}
+fn()
+```
+
+## Zadanie 3
+
+Dane
+
+```{r}
+df <- tibble(
+  x = c(100, 200, 300, 450, 600, 800, 1000),
+  y = c(253, 337, 395, 451, 495, 534,  574)
+)
+```
+
+#### a)
+
+Model kwadratowy:
+```{r}
+lm_square <- lm(y ~ poly(x, degree = 2, raw = TRUE), data = df)
+# To samo co
+# lm_square <- lm(y ~ x + I(x ^ 2), data = df)
+```
+
+Model sześcienny:
+```{r}
+lm_cube <- lm(y ~ poly(x, degree = 3, raw = TRUE), data = df)
+```
+
+#### b)
+
+Na poziomie istotności $95\%$ wszystkie parametry (w obydwu modelach) są istotne bo p-wartości są niższe niż $0.05$:
+
+```{r}
+summary(lm_square)
+```
+
+```{r}
+summary(lm_cube)
+```
+
+wykorzystanie standardowych testów jest uzasadnione, bo po pierwsze nie występuje (albo przynajmniej nie ma podstawy twierdzić, że występuje) heteroskedastyczność i nie ma potrzeby korekty błędów standardowych przez macierze zgodne z heteroskedastycznością:
+
+```{r}
+bptest(lm_square) %>% print()
+bptest(lm_cube)   %>% print()
+```
+
+Reszty regresji mają też rozkład normalny:
+
+```{r}
+resid(lm_square) %>% shapiro.test() %>% print()
+resid(lm_cube) %>% shapiro.test() %>% print()
+```
+
+Istnieje co prawda problem z obserwacjami wpływowymi ale w tak małej próbie ciężko tego uniknąć:
+
+```{r}
+plot(lm_square, which = 5)
+plot(lm_cube, which = 5)
+```
+
+
+#### c)
+
+Kryterium `BIC` sugeruje, że model sześcienny jest lepszy od modelu kwadratowego (podobnie jak kryterium `AIC`):
+
+```{r}
+BIC(lm_square, lm_cube)
+```
+
+```{r}
+AIC(lm_square, lm_cube)
+```
+
+#### d)
+
+```{r}
+df %>%
+  ggplot(aes(y = y, x = x)) +
+  geom_point() +
+  geom_smooth(formula = y ~ 1 + x + I(x ^ 2), 
+              method = "lm",
+              se = FALSE, 
+              aes(col = "Kwadratowa"), 
+              linewidth = 1.1) +
+  geom_smooth(formula = y ~ 1 + x + I(x ^ 2) + I(x ^ 3), 
+              method = "lm",
+              se = FALSE, 
+              aes(col = "Sześcienna"), 
+              linewidth = 1.1) +
+  scale_color_manual(values = c("Kwadratowa" = "salmon",
+                                "Sześcienna" = "lightgreen")) +
+  labs(color = "Model Regresji",
+       x = "Wysokość [m]",
+       y = "Zasięg [m]") +
+  ggtitle("Regresja kwadratowa i sześcienna") +
+  theme_bw()
+```
+
+
+#### e)
+
+Prognoza:
+```{r}
+predict(lm_cube, newdata = data.frame(x = 1100))
+```
