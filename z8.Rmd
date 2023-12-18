@@ -1,0 +1,90 @@
+---
+title: "Ćwiczenia 8"
+date: "2023-12-18"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE}
+library(tidyverse)
+```
+
+### Zadanie 1
+```{r}
+df <- MASS::painters
+var(df[,1:4])
+```
+
+```{r}
+(model_pca <- prcomp(~ Composition + Drawing + Colour + Expression,
+                     data = df))
+```
+
+```{r}
+summary(model_pca)
+```
+
+```{r}
+df_new <- data.frame(
+  predict(model_pca, df),
+  names = rownames(df)
+)
+
+df_new |> 
+  left_join(
+    df |> 
+      as_tibble(rownames = "names") |>
+      select(names, School)
+  ) |>
+  ggplot(aes(x = PC1, y = PC2, colour = School, group = School)) +
+  geom_text(aes(label = names), show.legend = FALSE)
+```
+
+
+### Zadanie 2
+
+
+```{r}
+df <- MASS::Cars93
+
+df <- df |>
+  select(where(is.numeric)) |>
+  na.omit()
+
+var(df) |> 
+  diag()
+```
+
+```{r}
+(model_pca <- prcomp(df, scale. = TRUE))
+```
+
+```{r}
+print(summary(model_pca))
+plot(model_pca)
+```
+```{r}
+df <- cbind(model_pca$x,
+            df) |>
+  left_join(MASS::Cars93)
+
+model_sd <- (model_pca |> summary())$importance[2, 1:2]
+
+df |>
+  select(PC1, PC2, Origin, Type, Man.trans.avail, Make) |>
+  transform("Make" = paste0(
+    Make, " (", ifelse(Man.trans.avail == "Yes", "M", "A"), ")"
+  )) |>
+  ggplot(aes(x = PC1, 
+             y = PC2, 
+             col   = Type, 
+             shape = Origin,
+             label = Make)) +
+  geom_point(size = 2) +
+  ggrepel::geom_text_repel(size = 3.2, max.overlaps = 20) +
+  theme_bw() +
+  xlab(paste0("Principal component 1 (Explained Variance = ", round(model_sd[1] * 100, 2), "%)")) +
+  ylab(paste0("Principal component 2 (Explained Variance = ", round(model_sd[2] * 100, 2), "%)"))
+```
+
