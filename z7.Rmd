@@ -187,3 +187,54 @@ forecast(m_auto, h = 5)
 forecast(m011, h = 5)
 forecast(m100, h = 5)
 ```
+
+### Zadanie 8
+
+Wizualizacja samego szeregu:
+
+```{r}
+data(gold, package = "TSA")
+data.frame(y = as.numeric(gold),
+           time = time(gold) |> as.numeric()) |>
+  ggplot(aes(y = y, x = time)) +
+  geom_line() +
+  geom_smooth(method = "lm", se = FALSE,
+              aes(col = "Trend liniowy")) +
+  geom_smooth(method = "lm", se = FALSE,
+              formula = y ~ x + I(x ^ 2),
+              aes(col = "Trend kwadratowy")) +
+  scale_color_manual(values = c("Trend liniowy" = "salmon",
+                                "Trend kwadratowy" = "lightgreen")) +
+  labs(color = "Model trendu",
+       x = "[n-ty] dzień handlu (bez weekendów i świąt)",
+       y = "Cena złota") +
+  ggtitle("Cena złota w roku 2005") +
+  theme_bw()
+```
+
+Wizualizacja różnic logarytmów:
+
+```{r}
+xx <- diff(log(gold))
+data.frame(y = xx |> as.numeric(),
+           time = time(xx) |> as.numeric()) |>
+  ggplot(aes(y = y, x = time)) +
+  geom_line() +
+  labs(x = "[n-ty] dzień handlu (bez weekendów i świąt)",
+       y = "Różnica pomiędzy logarytmem ceny w obecnym i poprzednim dniu handlowym") +
+  ggtitle("Cena złota w roku 2005") +
+  theme_bw()
+```
+
+Model ARIMA:
+
+```{r}
+m_auto <- auto.arima(y = xx)
+m_auto
+```
+
+Wizualizacja modelu z predykcją na następny rok:
+
+```{r}
+autoplot(forecast(m_auto, h = 252, level = 0))
+```
