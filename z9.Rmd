@@ -1,0 +1,138 @@
+---
+title: "Ćwiczenia 9"
+date: "2023-01-08"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE}
+library(tidyverse)
+library(caret)
+```
+
+### Zadanie 1
+
+```{r}
+df <- MASS::painters
+
+model_lda <- train(
+  School ~ ., 
+  data = df, 
+  method="lda",
+  trControl = trainControl(method = "LOOCV", search = "grid")
+)
+predict_class <- predict(model_lda)
+```
+
+Błąd resubstytucji
+
+```{r}
+mean(substitution_error <- predict_class == df$School)
+```
+
+Błąd cv:
+
+```{r}
+model_lda$results$Accuracy
+```
+
+```{r}
+confusionMatrix(
+  data = predict_class,
+  reference = df$School
+)
+```
+
+### Zadanie 2
+
+```{r}
+df <- DAAG::leafshape
+model_lda <- train(
+  location ~ . - arch - latitude, 
+  data = df, 
+  method = "lda",
+  trControl = trainControl(method = "LOOCV", search = "grid")
+)
+model_qda <- train(
+  location ~ . - arch - latitude, 
+  data = df,
+  method = "qda",
+  trControl = trainControl(method = "LOOCV", search = "grid")
+)
+predict_class_qda <- predict(model_qda)
+predict_class_lda <- predict(model_lda)
+```
+
+```{r}
+model_qda$results
+model_lda$results
+```
+
+```{r}
+confusionMatrix(
+  data = predict_class_qda,
+  reference = df$location
+)
+```
+
+```{r}
+confusionMatrix(
+  data = predict_class_lda,
+  reference = df$location
+)
+```
+
+
+### Zadanie 3
+
+```{r}
+df <- tibble(
+  group = rep(1:3, each = 5) |> factor(),
+  depression = c(
+      6,  4, 0, 4,  0,
+     11, 11, 5, 8,  4,
+     12,  8, 9, 8, 11
+  ),
+  anxiety = c(
+     8, 3, 2,  1, 8,
+     9, 6, 7,  6, 9,
+     11, 8, 6, 10, 4
+  ),
+  social_unrest = c(
+    9, 3, 8, 6, 4,
+    8, 6, 4, 5, 4,
+    6, 5, 7, 8, 3
+  )
+)
+```
+
+```{r}
+model_lda <- train(
+  group ~ ., 
+  data = df, 
+  method = "lda",
+  trControl = trainControl(method = "LOOCV", search = "grid")
+)
+model_qda <- train(
+  group ~ ., 
+  data = df,
+  method = "qda",
+  trControl = trainControl(method = "LOOCV", search = "grid")
+)
+model_naive_bayes <- train(
+  group ~ ., 
+  data = df,
+  method = "naive_bayes",
+  tunegr,
+  trControl = trainControl(method = "LOOCV", search = "grid")
+)
+```
+
+```{r}
+cbind(rbind(
+  model_lda$results[, -1],
+  model_qda$results[, -1],
+  model_naive_bayes$results[1:2 ,4:5]
+), classificators = c("lda", "qda", "naive_bayes", "kernel_bayes"))
+```

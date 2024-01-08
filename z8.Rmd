@@ -2,8 +2,8 @@
 title: "Ćwiczenia 8"
 date: "2023-12-18"
 output:
-  pdf_document: default
   html_document: default
+  pdf_document: default
 ---
 
 ```{r, echo=FALSE, warning=FALSE, message=FALSE}
@@ -88,3 +88,45 @@ df |>
   ylab(paste0("Principal component 2 (Explained Variance = ", round(model_sd[2] * 100, 2), "%)"))
 ```
 
+
+### Zadanie 3
+
+```{r}
+df <- swiss
+mds_model <- cmdscale(dist(scale(df)))
+```
+
+```{r}
+swiss |> 
+  scale() |>
+  dist() |>
+  cmdscale() |>
+  as_tibble(rownames = "province") |>
+  ggplot(aes(x = V1, y = V2, label = province)) +
+  geom_point() +
+  ggrepel::geom_text_repel() +
+  labs(x = '', y = '', title = 'Multidimensional Scaling (swiss dataset)') +
+  theme_bw()
+```
+
+### Zadanie 4
+
+```{r}
+plot(ca::ca(factoextra::housetasks))
+```
+
+
+```{r}
+factoextra::housetasks |> 
+  t() |> 
+  scale(center = FALSE) |> 
+  t() |>
+  dist() |>
+  cmdscale() |>
+  as_tibble(rownames = "what") |>
+  ggplot(aes(x = V1, y = V2, label = what)) +
+  geom_point() +
+  ggrepel::geom_text_repel() +
+  labs(x = '', y = '', title = 'Multidimensional Scaling (housetasks dataset)') +
+  theme_bw()
+```
