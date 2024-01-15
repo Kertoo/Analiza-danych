@@ -1,6 +1,6 @@
 ---
 title: "Ćwiczenia 9"
-date: "2023-01-08"
+date: "2024-01-08"
 output:
   pdf_document: default
   html_document: default
@@ -124,7 +124,6 @@ model_naive_bayes <- train(
   group ~ ., 
   data = df,
   method = "naive_bayes",
-  tunegr,
   trControl = trainControl(method = "LOOCV", search = "grid")
 )
 ```
@@ -136,3 +135,51 @@ cbind(rbind(
   model_naive_bayes$results[1:2 ,4:5]
 ), classificators = c("lda", "qda", "naive_bayes", "kernel_bayes"))
 ```
+
+### Zadanie 4
+
+```{r, echo=FALSE, message=FALSE}
+df <- readr::read_csv("https://hastie.su.domains/ElemStatLearn/datasets/SAheart.data")[, -1]
+df$chd <- df$chd |> as.factor()
+```
+
+```{r}
+model_1nn <- train(
+  chd ~ .,
+  data = df,
+  method = "knn",
+  trControl = trainControl(method = "boot", number = 100),
+  tuneGrid = data.frame(k = 1)
+)
+model_rf <- train(
+  chd ~ .,
+  data = df,
+  method = "ranger",
+  trControl = trainControl(method = "boot", number = 100),
+  tuneGrid = expand.grid(
+    mtry = 2,
+    splitrule = c("gini", "extratrees"),
+    min.node.size = 1:4
+  )
+)
+```
+
+Bootstrap error
+
+```{r}
+rbind(
+  cbind(method = "1-nn", mtry = NA, splitrule = NA, min.node.size = NA, 
+        model_1nn$results[, -1], resub = mean(predict(model_1nn, df) != df$chd)),
+  cbind(method = "Random forest", model_rf$results, resub = mean(predict(model_rf, df) != df$chd))
+)
+```
+
+
+```{r}
+confusionMatrix(model_rf)
+```
+
+```{r}
+confusionMatrix(predict(model_rf, df), df$chd)
+```
+
