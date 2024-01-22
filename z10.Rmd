@@ -57,3 +57,119 @@ df |>
   theme_bw()
 ```
 
+### Zadanie 2
+
+```{r}
+df1 <- cluster::votes.repub |>
+  na.omit() |>
+  as_tibble(rownames = "State")
+
+df2 <- cluster::votes.repub |> 
+  t() |>
+  na.omit() |>
+  t() |>
+  as_tibble(rownames = "State")
+```
+
+```{r}
+model_hlucst1 <- hclust(dist(df1[, -1], method = "manhattan"), 
+                        method = "complete")
+model_hlucst2 <- hclust(dist(df2[, -1], method = "manhattan"), 
+                        method = "complete")
+```
+
+```{r}
+plot(model_hlucst1, labels = df1$State, hang = -1)
+rect.hclust(model_hlucst1, k = 3)
+```
+
+```{r}
+plot(model_hlucst2, labels = df2$State, hang = -1)
+rect.hclust(model_hlucst2, k = 4)
+```
+
+
+```{r}
+df2 |>
+  select(-State)|>
+  princomp() |>
+  predict() |>
+  as_tibble() |>
+  transform(State = df2$State,
+            group = cutree(model_hlucst2, k = 3) |> factor()) |>
+  ggplot(aes(col = group, y = Comp.2, x = Comp.1, label = State)) +
+  ggrepel::geom_label_repel(max.overlaps = 26) +
+  geom_point() +
+  theme_bw()
+```
+
+```{r}
+df1 |>
+  select(-State)|>
+  prcomp() |>
+  predict() |>
+  as_tibble() |>
+  transform(State = df1$State,
+            group = cutree(model_hlucst1, k = 3) |> factor()) |>
+  ggplot(aes(col = group, y = PC2, x = PC1, label = State)) +
+  geom_point() +
+  ggrepel::geom_label_repel(max.overlaps = 10) +
+  theme_bw()
+```
+
+```{r}
+df1 |>
+  select(-State)|>
+  prcomp() -> xx
+
+xx |>
+  predict() |>
+  as_tibble() |>
+  transform(State  = df1$State,
+            group3 = cutree(hclust(dist(df1[, -1], method = "manhattan"), 
+                        method = "ward.D"), k = 3) |> factor(),
+            group4 = cutree(hclust(dist(df1[, -1], method = "manhattan"), 
+                        method = "ward.D"), k = 4) |> factor()) |>
+  pivot_longer(cols = c("group3", "group4"),
+               values_to = "cluster",
+               names_to = "number_of_clusters") |>
+  ggplot(aes(y = PC2, x = PC1, label = State, color = cluster)) +
+  geom_point() +
+  facet_grid(cols = vars(number_of_clusters)) +
+  ggrepel::geom_label_repel(max.overlaps = 20) +
+  theme_bw() +
+  xlab(paste0("PC1 explained variance proportion = ", 
+              summary(xx)$importance[2, 1] * 100,
+              "%")) +
+  ylab(paste0("PC2 explained variance proportion = ", 
+              summary(xx)$importance[2, 2] * 100,
+              "%"))
+```
+
+
+```{r}
+df2 |>
+  select(-State)|>
+  prcomp() -> xx2
+
+xx2 |>
+  predict() |>
+  as_tibble() |>
+  transform(State  = df2$State,
+            group3 = cutree(model_hlucst2, k = 3) |> factor(),
+            group4 = cutree(model_hlucst2, k = 4) |> factor()) |>
+  pivot_longer(cols = c("group3", "group4"),
+               values_to = "cluster",
+               names_to = "number_of_clusters") |>
+  ggplot(aes(y = PC2, x = PC1, label = State, color = cluster)) +
+  geom_point() +
+  facet_grid(cols = vars(number_of_clusters)) +
+  ggrepel::geom_label_repel(max.overlaps = 35) +
+  theme_bw() +
+  xlab(paste0("PC1 explained variance proportion = ", 
+              summary(xx2)$importance[2, 1] * 100,
+              "%")) +
+  ylab(paste0("PC2 explained variance proportion = ", 
+              summary(xx2)$importance[2, 2] * 100,
+              "%"))
+```
