@@ -1,0 +1,279 @@
+---
+title: "Kolokwium"
+author: "Piotr Chlebicki"
+date: "2024-01-29"
+output:
+  pdf_document: default
+  html_document:
+    df_print: paged
+---
+
+Pakiety:
+
+```{r, warning=FALSE, message=FALSE}
+library(tidyverse) # dplyr + ggplot
+library(TSA)
+library(forecast)
+library(caret)
+```
+
+## Zadanie 1
+
+#### a)
+
+Proces zadany przez:
+$$Y_{t}=\frac{1}{3}Y_{t-1}+\frac{2}{9}Y_{t-2}+\varepsilon_{t}, t\geq3$$
+
+gdzie $\varepsilon_{1},\dotso\sim\mathcal{N}(0,1)$ i.d.d. to process AR(2)
+
+#### b)
+
+Wielomian charakterystyczny:
+
+$$1-\frac{1}{3}t-\frac{2}{9}t^{2}$$
+
+moduły jego pierwiastków to:
+
+```{r}
+polyroot(c(1, -1/3, -2/9)) |> abs()
+```
+są one wszystkie większe (ostro) od $1$ więc proces jest stacjonarny.
+
+#### c)
+
+Generacja przy założeniu, że $Y_{0}=\varepsilon_{0}$ i $Y_{1}=\frac{1}{3}Y_{0}+\varepsilon_{1}$
+
+```{r}
+set.seed(123)
+generate_y <- function(n = 1000L) {
+  epsilon <- rnorm(n = n)
+  Y <- vector(mode = "numeric", length = n)
+  coef <- c(1/3, 2/9)
+  Y[1] <- epsilon[1]
+  Y[2] <- coef[1] * Y[1] + epsilon[2]
+  k <- 3
+  while (k <= n) {
+    Y[k] <- t(coef) %*% c(Y[k - 1], Y[k - 2]) + epsilon[k]
+    k <- k+1
+  }
+  Y
+}
+Y <- generate_y()
+```
+
+#### d)
+
+Wykres z kilkoma realizacjami niebieski to oryginalna trajektoria.
+
+```{r}
+df <- do.call(rbind, lapply(1:10, FUN = function(x) generate_y())) |> 
+  t() |> 
+  cbind(Y) |>
+  as.vector() |>
+  data.frame(idx = (rep(1:11, each = 1000L) == 11) |> factor(), 
+             x = 1:1000L)
+
+colnames(df)[1] <- "values"
+
+df |>
+  ggplot(aes(x = x, y = values, group = idx, col = idx)) +
+  geom_line()
+```
+
+Wykres tylko wygynerowanej trajektorii:
+
+```{r}
+plot(Y, type = "l")
+```
+
+## Zad 2
+
+#### a)
+
+Wartość $12$ została wybrana żeby wyeliminować potencjalne efekty sezonowe występujące w czasie roku
+
+```{r}
+data("beersales")
+df_aux <- data.frame(
+  value = stats::filter(beersales, rep(1, 12) / 12) |> as.numeric(),
+  time = stats::filter(beersales, rep(1, 12) / 12) |> time()
+)
+df <- tibble(
+  value = beersales |> as.numeric(),
+  time = beersales |> time()
+)
+```
+
+```{r}
+df |>
+  ggplot(aes(x = time, y = value)) +
+  geom_line(lty = 2, aes(col = "Szereg\nCzasowy")) +
+  geom_line(data = df_aux, aes(col = "MA(12)")) +
+  scale_colour_manual(
+    values = c(
+      "Szereg\nCzasowy" = "navy",
+      "MA(12)" = "red",
+      "Arima" = "darkgreen"
+    )
+  ) +
+  labs(x = "Czas",
+       y = "Sprzedaż piwa (w milionach baryłek)",
+       colour = "") +
+  theme_minimal()
+```
+
+#### b)
+
+Na podstawie modelu MA(12) istnieje trend bo czerwona linia na wykresie (modelu) nie jest prostą stale równą średniej ogólnej. Występuje także sezonowość ponieważ zaobserwowane wartości w miesiącach letnich (zimowych) wyraźnie są wyższe (niższe) niż prognoza modelu.
+
+#### c)
+
+Nie ma podstawy przypuszczać, że szereg jest stacjonarny (wysoka P-wartość).
+
+```{r}
+tseries::adf.test(beersales, k = 12)
+```
+
+#### d)
+
+```{r}
+model <- auto.arima(beersales)
+```
+
+#### e)
+
+```{r}
+df <- tibble(
+  value = c(beersales, forecast(model, 12)$mean) |> as.numeric(),
+  time = c(beersales |> time(), forecast(model, 12)$mean |> time())
+)
+
+df[, "iddx"] <- df$time < 1991
+```
+
+```{r}
+df |>
+  ggplot(aes(x = time, y = value)) +
+  geom_line(lty = 2, aes(col = "Szereg\nCzasowy")) +
+  geom_line(data = data.frame(
+    value = forecast(model, 12)$mean |> as.numeric(),
+    time = forecast(model, 12)$mean |> time()
+  ), aes(col = "Arima"), linewidth = 1.5) +
+  geom_line(data = df_aux, aes(col = "MA(12)")) +
+  scale_colour_manual(
+    values = c(
+      "Szereg\nCzasowy" = "navy",
+      "MA(12)" = "red",
+      "Arima" = "darkgreen"
+    )
+  ) +
+  labs(x = "Czas",
+       y = "Sprzedaż piwa (w milionach baryłek)",
+       colour = "") +
+  theme_minimal()
+```
+
+#### f)
+
+Prognozowana wartość sprzedaży piwa to
+
+```{r}
+forecast(model, 13)$mean[13]
+```
+
+## Zadanie 3
+
+#### a)
+
+Skalowanie jest potrzebne ponieważ wszystkie wartości reprezentują energie w różnych częstotliwościach są więc nieporównywalne.
+
+```{r}
+data(Sonar, package = "mlbench")
+```
+
+```{r}
+model_pca <- prcomp(Sonar[, 1:60] |> scale())
+```
+
+#### b)
+
+Pierwsze 2 składowe główne wyjaśniają $39.24\%$ wariancji trzecia wyjaśnia $8.55\%$ a powstało 60 składowych (bo tyle było zmiennych numerycznych)
+
+```{r}
+summary(model_pca)
+```
+
+#### c)
+
+Biplot:
+
+```{r}
+biplot(model_pca)
+```
+
+Wykres osypiska
+
+```{r}
+plot(model_pca, type = "lines")
+```
+
+#### d)
+
+Dwie pierwsze składowe główne nie wyjaśniają niestety nawet połowę zmienności w danych więc zostawienie tylko dwóch składowych jest niewłaściwe.
+
+
+#### e)
+
+```{r}
+df <- cbind(model_pca$x, Class = Sonar$Class) |> as_tibble()
+df$Class <- (df$Class == 2) |> ifelse("Rock", "Metal") |> factor()
+```
+
+```{r}
+df |>
+  ggplot(aes(x = PC1, y = PC2, shape = Class, col = Class)) +
+  geom_point(size = 2) +
+  scale_colour_manual(
+    values = c(
+      "Rock" = "black",
+      "Metal" = "darkgreen"
+    )
+  ) +
+  labs(x = paste0("PC1", " (", summary(model_pca)$importance[2, 1] * 100, "%)"),
+       y = paste0("PC2", " (", summary(model_pca)$importance[2, 2] * 100, "%)"),
+       colour = "Class") +
+  theme_minimal()
+```
+
+#### f)
+
+```{r}
+model_rf <- train(
+  Class ~ PC1 + PC2 + PC3 + PC4 + PC5,
+  data = df,
+  method = "ranger",
+  trControl = trainControl(method = "cv", number = 10)
+)
+```
+
+```{r}
+confusionMatrix(model_rf)
+```
+
+```{r}
+confusionMatrix(predict(model_rf), df$Class)
+```
+
+Model różni się istotnie od losowego modelu kórego dokładność byłaby na poziomie około $53\%$.
+
+#### g)
+
+Obserwacja została zaklasifikowana do kamieni.
+
+```{r}
+set.seed(999)
+ddf <- runif(60) |> data.frame() |> t()
+
+colnames(ddf) <- paste0("PC", 1:60)
+predict(model_rf, newdata = ddf)
+```
